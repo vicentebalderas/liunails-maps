@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mapa de distribuidoras LIUNAILS</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    :root{--bg:#0b0c10;--card:#111318;--ink:#e8eaf0;--muted:#aab0bd;--accent:#8b5cf6}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+    h1{font-size:clamp(20px,2.5vw,28px);margin:16px}
+    p{margin:0 16px 16px;color:var(--muted)}
+    #map{height:70vh;width:100%}
+    .leaflet-popup-content{font-size:14px}
+    .legend{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-top:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.00))}
+    .tag{padding:6px 10px;border:1px solid rgba(255,255,255,.12);border-radius:999px;color:var(--ink);font-size:12px}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Distribuidoras de LIUNAILS en México</h1>
+      <p>Mapa interactivo con presencia por ciudad/estado.</p>
+      <div id="map" role="region" aria-label="Mapa de distribuidoras en México"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    // ======================
+    // Distribuitors (oct/6/2025)
+    // ======================
+    const distributors = [
+      // Baja California Sur
+      {state:"Baja California Sur", city:"Ciudad Constitución", name:"Top Nail Store", coords:[25.0343,-111.6626], links:{wa:"https://api.whatsapp.com/send?phone=6131174954", ig:"https://www.instagram.com/t_o_p_nailstore/", fb:"https://www.facebook.com/profile.php?id=100089207206238"}},
+      {state:"Baja California Sur", city:"La Paz", name:"afacademynailshop", coords:[24.1426,-110.3128], links:{wa:"https://api.whatsapp.com/send?phone=6122194733", ig:"https://www.instagram.com/afacademynailshop/"}},
+
+      // Ciudad de México
+      {state:"Ciudad de México", city:"Ciudad de México", name:"saraaroomer", coords:[19.4326,-99.1332], links:{wa:"https://api.whatsapp.com/send?phone=5626704143", ig:"https://www.instagram.com/sararoomer/"}},
+      {state:"Ciudad de México", city:"Ciudad de México", name:"Tribeca Shop", coords:[19.4326,-99.1332], links:{wa:"https://api.whatsapp.com/send?phone=5565419846", ig:"https://www.instagram.com/tribecapshop/"}},
+
+      // Coahuila
+      {state:"Coahuila", city:"Saltillo", name:"Nägel", coords:[25.4267,-100.9950], links:{wa:"https://api.whatsapp.com/send?phone=8442769341", ig:"https://www.instagram.com/nagelnailshop/"}},
+      {state:"Coahuila", city:"Torreón", name:"Be Beauty Nail Store", coords:[25.5427,-103.4068], links:{wa:"https://api.whatsapp.com/send?phone=8713431400", ig:"https://www.instagram.com/bebeauty.nailstore/"}},
+
+      // Jalisco
+      {state:"Jalisco", city:"Etzatlán", name:"Laudema’s studio & shop", coords:[20.7683,-104.0756], links:{wa:"https://api.whatsapp.com/send?phone=3861044866", fb:"https://www.facebook.com/people/Laudemas-Studio/100066640177585/"}},
+      {state:"Jalisco", city:"Guadalajara", name:"Emma Nail Store", coords:[20.6736,-103.3440], links:{wa:"https://api.whatsapp.com/send?phone=3317495467", ig:"https://www.instagram.com/emmanailstore/"}},
+      {state:"Jalisco", city:"Guadalajara", name:"Li&Re Store", coords:[20.6736,-103.3440], links:{wa:"https://api.whatsapp.com/send?phone=3325792913", ig:"https://www.instagram.com/lire.store.gdl/"}},
+      {state:"Jalisco", city:"Guadalajara", name:"Lula Nails Store", coords:[20.6736,-103.3440], links:{wa:"https://api.whatsapp.com/send?phone=3326300389", ig:"https://www.instagram.com/lulanailstore/"}},
+      {state:"Jalisco", city:"Guadalajara", name:"Aylin Nail Store", coords:[20.6736,-103.3440], links:{wa:"https://api.whatsapp.com/send?phone=3317495467", ig:"https://www.instagram.com/aylin_studioshop/"}},
+      {state:"Jalisco", city:"Zapopan", name:"Glow Store", coords:[20.7236,-103.3848], links:{wa:"https://api.whatsapp.com/send?phone=3241080129", ig:"https://www.instagram.com/glowbeautystore_/", ig2:"https://www.instagram.com/glowbeauty.bygise/"}},
+      {state:"Jalisco", city:"Tlaquepaque", name:"Petunia BeautyShop", coords:[20.6409,-103.2933], links:{wa:"https://api.whatsapp.com/send?phone=3321750201", ig:"https://www.instagram.com/PetuniaBeautyShop/", fb:"https://www.facebook.com/ChicNailShop/"}},
+
+      // Michoacán
+      {state:"Michoacán", city:"Zamora", name:"Krása nail store", coords:[19.9849,-102.2830], links:{wa:"https://api.whatsapp.com/send?phone=3551001133", ig:"https://www.instagram.com/krasanailstore/"}},
+
+      // Nayarit
+      {state:"Nayarit", city:"Tepic", name:"Mina Beauty Shop", coords:[21.5056,-104.8946], links:{wa:"https://api.whatsapp.com/send?phone=3115294615", ig:"https://www.instagram.com/mina.beautyshop/"}},
+
+      // Nuevo León
+      {state:"Nuevo León", city:"San Nicolás de los Garza", name:"Material Kim Nails", coords:[25.7417,-100.2890], links:{wa:"https://api.whatsapp.com/send?phone=8132698611", ig:"https://www.instagram.com/material.kimnails/", fb:"https://www.facebook.com/Materialkimnails/"}},
+      {state:"Nuevo León", city:"Santa Catarina", name:"AMDZ Nails Store Mty", coords:[25.6730,-100.4560], links:{wa:"https://api.whatsapp.com/send?phone=8131148280", ig:"https://www.instagram.com/amdznails_storemty/", fb:"https://www.facebook.com/AMDZNailsStoreByLizbethArmendariz/"}},
+
+      // Querétaro
+      {state:"Querétaro", city:"Querétaro", name:"Mareca nail store", coords:[20.5888,-100.3899], links:{wa:"https://api.whatsapp.com/send?phone=4422870359", ig:"https://www.instagram.com/marecanailstore/"}},
+
+      // Sinaloa
+      {state:"Sinaloa", city:"Mazatlán", name:"Bellestation Store", coords:[23.2329,-106.4062], links:{wa:"https://api.whatsapp.com/send?phone=6691504110", ig:"https://www.instagram.com/bellestationstore_/"}},
+
+      // Tabasco
+      {state:"Tabasco", city:"Villahermosa", name:"Artemis Store", coords:[17.9895,-92.9475], links:{wa:"https://api.whatsapp.com/send?phone=9932062685", ig:"https://www.instagram.com/arttemis.store/"}},
+      {state:"Tabasco", city:"Villahermosa", name:"Chic Nail Shop", coords:[17.9895,-92.9475], links:{wa:"https://api.whatsapp.com/send?phone=9932221295", ig:"https://www.instagram.com/Chicnailshop_/", fb:"https://www.facebook.com/ChicNailShop/"}},
+
+      // Veracruz
+      {state:"Veracruz", city:"Veracruz", name:"Nail Store Nagel Art", coords:[19.1738,-96.1342], links:{wa:"https://api.whatsapp.com/send?phone=7822240042", ig:"https://www.instagram.com/nailstore.nagelart/"}},
+      {state:"Veracruz", city:"Xalapa", name:"Marem Nail Store", coords:[19.5438,-96.9103], links:{wa:"https://api.whatsapp.com/send?phone=2281460222", ig:"https://www.instagram.com/maremnailstore/"}}
+    ];
+
+    // ======================
+    // Leaflet Map
+    // ======================
+    const map = L.map('map', { scrollWheelZoom: true }).setView([23.5, -102.0], 5);
+    
+    // Base layer (OSM)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contrib.'
+    }).addTo(map);
+
+    // Grouping legends by state
+    const states = [...new Set(distributors.map(d => d.state))].sort();
+    const legend = document.getElementById('legend');
+    states.forEach(st => {
+      const count = distributors.filter(d => d.state === st).length;
+      const el = document.createElement('span');
+      el.className = 'tag';
+      el.textContent = `${st}: ${count}`;
+      legend.appendChild(el);
+    });
+
+    // Base icon
+    const pin = (color='#8b5cf6') => L.divIcon({
+      className:'custom-pin',
+      html:`<svg width="26" height="36" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 6.26 11.49 7.02 12.2.27.25.69.25.96 0C13.74 21.49 20 15.25 20 10c0-4.42-3.58-8-8-8z" fill="${color}" opacity="0.9"/>
+        <circle cx="12" cy="10" r="3.2" fill="white"/>
+      </svg>`,
+      iconSize:[26,36], iconAnchor:[13,36], popupAnchor:[0,-30]
+    });
+
+    // Markers generator
+    const group = L.featureGroup();
+
+    distributors.forEach((d) => {
+      const m = L.marker(d.coords, { icon: pin() }).addTo(map);
+      const links = [
+        d.links?.wa ? `<a href="${d.links.wa}" target="_blank" rel="noopener">WhatsApp</a>` : null,
+        d.links?.ig ? `<a href="${d.links.ig}" target="_blank" rel="noopener">Instagram</a>` : null,
+        d.links?.ig2 ? `<a href="${d.links.ig2}" target="_blank" rel="noopener">Instagram 2</a>` : null,
+        d.links?.fb ? `<a href="${d.links.fb}" target="_blank" rel="noopener">Facebook</a>` : null,
+      ].filter(Boolean).join(' · ');
+
+      m.bindPopup(
+        `<div>
+          <strong>${d.name}</strong><br/>
+          <span>${d.city}, ${d.state}</span><br/>
+          ${links ? `<div style="margin-top:6px">${links}</div>` : ''}
+        </div>`
+      );
+      group.addLayer(m);
+    });
+
+    // Ajustar vista a marcadores
+    map.fitBounds(group.getBounds().pad(0.2));
+  </script>
+</body>
+</html>
